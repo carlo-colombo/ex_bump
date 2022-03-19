@@ -1,5 +1,5 @@
 defmodule Bump do
-  def iodata(%{size: %{height: height, width: width}} = canvas) do
+  def to_iodata(%{size: %{height: height, width: width}} = canvas) do
     resolution = 2835
     info_header_size = 40
     offset = 14 + info_header_size
@@ -25,7 +25,8 @@ defmodule Bump do
       offset::unsigned-little-integer-size(32),
       info_header_size::unsigned-little-integer-size(32),
       width::unsigned-little-integer-size(32),
-      height::unsigned-little-integer-size(32),
+      # negative height signals that rows are top to bottom
+      -height::unsigned-little-integer-size(32),
       # color plane
       1::unsigned-little-integer-size(16),
       # bits per pixel (color depth)
