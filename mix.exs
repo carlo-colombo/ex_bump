@@ -3,7 +3,7 @@ defmodule ExBump.Mixfile do
 
   def project do
     [app: :bump,
-     version: "0.2.0",
+     version: "0.3.0",
      elixir: "~> 1.13",
      description: description,
      package: package,
