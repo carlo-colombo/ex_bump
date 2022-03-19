@@ -1,66 +1,39 @@
 defmodule Size do
   defstruct height: 0, width: 0
 end
-defmodule Point do
-  defstruct x: 0, y: 0
-end
-defmodule Rect do
-  defstruct size: %Size{ }, origin: %Point{ }
-end
+
 defmodule Canvas do
-  defstruct pixels: [[%Color{ }]]
+  defstruct [:pixels, :size]
 
-  def size(%Size{height: height, width: width}) do
-    %Canvas{ pixels: Enum.map(0..height-1, fn(_acc) -> Enum.map(0..width-1, fn(_acc2) -> %Color{ } end) end) }
+  def new(%Size{height: height, width: width} = size) do
+    %Canvas{pixels: List.duplicate(%Color{}, height * width), size: size}
   end
 
-  def size(canvas) do
-    %Size{ height: length(canvas.pixels), width: length(Enum.fetch!(canvas.pixels, 0)) }
+  def put(canvas, coords, color \\ Color.named(:white))
+
+  def put(%Canvas{size: %{width: width, height: height}}, {x, y}, _)
+      when x >= width or y >= height do
+    raise Enum.OutOfBoundsError
   end
 
-  def rect(canvas) do
-    %Rect{ size: Canvas.size(canvas) }
+  def put(%Canvas{pixels: pixels, size: size}, {x, y}, color) do
+    %Canvas{
+      pixels: put_in(pixels, [Access.at!(x * size.width + y)], color),
+      size: size
+    }
   end
 
   def fill(canvas, color: color) do
-    %Canvas{ pixels: Enum.map(canvas.pixels, fn(row) -> Enum.map(row, fn(_pixel) -> color end) end) }
+    %Canvas{canvas | pixels: List.duplicate(color, length(canvas.pixels))}
   end
-
-  def fill(canvas, color: color, rect: rect) do
-    pixels = Stream.with_index(canvas.pixels) |>
-      Stream.map(
-        fn({row, index}) ->
-          if index >= rect.origin.y && index < rect.origin.y + rect.size.height do
-            Stream.with_index(row) |>
-              Stream.map(
-                fn({pixel, index}) ->
-                  if index >= rect.origin.x && index < rect.origin.x + rect.size.width do
-                    color
-                  else
-                    pixel
-                  end
-                end) |> Enum.to_list
-          else
-            row
-          end
-        end
-      ) |> Enum.to_list
-    %Canvas{ pixels: pixels }
-  end
-
-# def paste(%Canvas{ } = top_canvas, onto: %Canvas{ } = bottom_canvas, at: [horizontal,vertical]) do
-# end
-
-# def paste(%Canvas{ } = top_canvas, onto: %Canvas{ } = bottom_canvas, rect: rect) do
-# end
 
   def pixel_data(canvas) do
-    Enum.map(canvas.pixels, fn(row) -> Enum.map(row, fn(pixel) -> Color.to_list(pixel) end) end)
+    Enum.map(canvas.pixels, &Color.to_list/1)
   end
 end
 
 defimpl Inspect, for: Canvas do
-  def inspect(_, _) do
-    "%Canvas<pixels: PIXEL_DATA>"
+  def inspect(canvas, _) do
+    "%Canvas{pixels: PIXEL_DATA, size: #{inspect(canvas.size)}}"
   end
 end
