@@ -2,12 +2,14 @@ defmodule ExBump.Mixfile do
   use Mix.Project
 
   def project do
-    [app: :bump,
-     version: "0.3.0",
-     elixir: "~> 1.13",
-     description: description,
-     package: package,
-     deps: deps]
+    [
+      app: :bump,
+      version: "0.3.0",
+      elixir: "~> 1.13",
+      description: description(),
+      package: package(),
+      deps: deps()
+    ]
   end
 
   def application do
@@ -15,7 +17,9 @@ defmodule ExBump.Mixfile do
   end
 
   defp deps do
-    []
+    [
+      {:benchee, only: :dev}
+    ]
   end
 
   defp description do
@@ -25,8 +29,10 @@ defmodule ExBump.Mixfile do
   end
 
   defp package do
-    [contributors: ["Evan Farrar"],
-     licenses: ["MIT"],
-     links: %{"GitHub" => "https://github.com/evanfarrar/ex_bump"}]
+    [
+      contributors: ["Evan Farrar"],
+      licenses: ["MIT"],
+      links: %{"GitHub" => "https://github.com/evanfarrar/ex_bump"}
+    ]
   end
 end
