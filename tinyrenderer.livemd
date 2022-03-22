@@ -1,0 +1,130 @@
+# Tiny Renderer
+
+## Section
+
+```elixir
+Mix.install(
+  [
+    {:bump, path: "../ex_bump"},
+    :kino,
+    :benchee
+  ],
+  force: true
+)
+```
+
+```elixir
+require Logger
+
+defmodule TinyRenderer do
+  def render(canvas, file_path) do
+    file_path
+    |> File.stream!()
+    |> Stream.map(&String.split(String.replace_trailing(&1, "\n", ""), " "))
+    |> Enum.reduce(%{vertices: :array.new(), canvas: canvas}, &handle_line/2)
+  end
+
+  def triangle(canvas, t0, t1, t2, color) do
+    canvas
+    |> Canvas.line(t0, t1, color)
+    |> Canvas.line(t1, t2, color)
+    |> Canvas.line(t2, t0, color)
+  end
+
+  defp handle_line(["v" | coords], acc) do
+    t = Enum.map(coords, &elem(Float.parse(&1), 0)) |> List.to_tuple()
+    update_in(acc, [:vertices], &:array.set(:array.size(&1), t, &1))
+  end
+
+  defp handle_line(["f" | vertices], acc) do
+    canvas = acc.canvas
+    %Canvas{size: %Size{width: width, height: height}} = canvas
+
+    sides =
+      vertices
+      |> Stream.map(&String.split(&1, "/"))
+      |> Stream.map(&List.to_tuple/1)
+      |> Stream.map(fn {v, _, _} -> elem(Integer.parse(v), 0) end)
+      |> Stream.map(&:array.get(&1 - 1, acc.vertices))
+      |> Enum.to_list()
+      |> (fn [a, b, c] -> [[a, b], [b, c], [c, a]] end).()
+
+    update_in(acc, [:canvas], fn canvas ->
+      sides
+      |> Enum.reduce(canvas, fn [{i0, j0, _}, {i1, j1, _}], canvas ->
+        x0 = round((i0 + 1) * width / 2)
+        y0 = round((j0 + 1) * height / 2)
+        x1 = round((i1 + 1) * width / 2)
+        y1 = round((j1 + 1) * height / 2)
+
+        try do
+          Canvas.line(canvas, {x0, y0}, {x1, y1}, Color.named(:white))
+        rescue
+          e ->
+            # Logger.error(Exception.format(:error, e))
+            canvas
+        end
+      end)
+    end)
+  end
+
+  defp handle_line(_, acc), do: acc
+end
+```
+
+```elixir
+import TinyRenderer
+
+Agent.start_link(fn -> nil end, name: CanvasState)
+
+render = fn ->
+  canvas =
+    {1400, 1400}
+    |> Size.new()
+    |> Canvas.new()
+    |> render("./african_head.obj")
+    |> Map.get(:canvas)
+
+  Agent.update(CanvasState, fn _ -> canvas end)
+end
+
+Benchee.run(
+  %{
+    render: render
+  },
+  time: 1,
+  save: [path: "benchmark.benchee"],
+  load: ["benchmark.benchee"]
+  # profile_after: true
+)
+
+:ok
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+Agent.get(CanvasState, & &1)
+|> Canvas.flip()
+|> Bump.to_iodata()
+|> IO.iodata_to_binary()
+|> Kino.Image.new("image/bmp")
+```
+
+```elixir
+import TinyRenderer
+
+canvas =
+  {200, 200}
+  |> Size.new()
+  |> Canvas.new()
+  |> triangle({10, 70}, {50, 160}, {70, 80}, Color.named(:red))
+  |> triangle({180, 50}, {150, 1}, {70, 180}, Color.named(:white))
+  |> triangle({180, 150}, {120, 160}, {130, 180}, Color.named(:green))
+  |> Canvas.flip()
+  |> Bump.to_iodata()
+  |> IO.iodata_to_binary()
+  |> Kino.Image.new("image/bmp")
+```
+
+![](./red.png)
