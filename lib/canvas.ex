@@ -49,8 +49,7 @@ defmodule Canvas do
 
     delta = b - a
 
-    Range.new(a, b)
-    |> Enum.reduce(canvas, fn x, canvas ->
+    Enum.reduce(a..b, canvas, fn x, canvas ->
       t = (x - a) / delta
       y = trunc(c * (1 - t) + d * t)
 
